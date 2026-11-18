@@ -1,0 +1,42 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: コードを取得
+        uses: actions/checkout@v4
+
+      - name: Java環境をセットアップ
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Flutter環境をセットアップ
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Android用ファイルを自動補完してAPKをビルド
+        run: |
+          mv pubspec.yaml /tmp/pubspec.yaml
+          mv lib/main.dart /tmp/main.dart
+          flutter create --project-name simple_memo --platforms android .
+          mv /tmp/pubspec.yaml pubspec.yaml
+          mv /tmp/main.dart lib/main.dart
+          sed -i 's/android:label="simple_memo"/android:label="シンプルメモ"/g' android/app/src/main/AndroidManifest.xml
+          rm -rf test
+          flutter pub get
+          flutter build apk --release
+
+      - name: 完成したAPKを保存
+        uses: actions/upload-artifact@v4
+        with:
+          name: simple-memo-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
